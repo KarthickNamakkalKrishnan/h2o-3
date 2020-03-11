@@ -23,8 +23,22 @@ if (is.null(training_frame)) training_frame <- blending_frame  # guarantee prese
     validate_params="""
 # Get the base models from model IDs (if any) that will be used for constructing model summary
 if(!is.list(base_models) && is.vector(x)) {
-   base_models <- as.list(base_models)
+  if (inherits(base_models, "H2OGrid")) {
+    base_models <- list(base_models)
+  } else {
+    base_models <- as.list(base_models)
+  }
 }
+
+# Expand Grids into models
+base_models <- as.list(unlist(lapply(base_models, function(base_model) {
+  if (inherits(base_model, "H2OGrid")) {
+    base_model <- base_model@model_ids
+  }
+  base_model
+}), recursive=TRUE))
+
+# Get the actual models
 baselearners <- lapply(base_models, function(base_model) {
   if (is.character(base_model))
     base_model <- h2o.getModel(base_model)

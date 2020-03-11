@@ -12,6 +12,7 @@ from h2o.frame import H2OFrame
 from h2o.utils.typechecks import assert_is_type, Enum, numeric
 from h2o.utils.shared_utils import quoted
 from h2o.utils.typechecks import is_type
+from h2o.grid import H2OGridSearch
 import json
 import ast
 
@@ -271,12 +272,17 @@ class H2OStackedEnsembleEstimator(H2OEstimator):
 
     @base_models.setter
     def base_models(self, base_models):
-        if is_type(base_models, [H2OEstimator]):
-            base_models = [b.model_id for b in base_models]
-            self._parms["base_models"] = base_models
-        else:
-            assert_is_type(base_models, None, [str])
-            self._parms["base_models"] = base_models
+        base_models = base_models.models if isinstance(base_models, H2OGridSearch) else base_models
+        expanded = []
+        for entry in base_models:
+            if isinstance(entry, H2OGridSearch):
+                expanded.extend((model.model_id for model in entry.models))
+            elif is_type(entry, H2OEstimator):
+                expanded.append(entry.model_id)
+            else:
+                assert_is_type(entry, None, str)
+                expanded.append(entry)
+        self._parms["base_models"] = expanded
 
 
     @property
